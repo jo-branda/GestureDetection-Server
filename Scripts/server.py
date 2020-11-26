@@ -25,7 +25,7 @@ def segmentation(image, threshold=25):
     # Difference between the background and the current frame
     diff = cv.absdiff(image, background.astype('uint8'))
 
-    th = cv.threshold(diff, threshold, 255, cv.THRESH_BINARY)[1]
+    _, th = cv.threshold(diff, threshold, 255, cv.THRESH_BINARY)
     contours, _ = cv.findContours(
         th, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -69,7 +69,30 @@ if __name__ == "__main__":
                     (th, sg) = foreground
                     cv.drawContours(
                         copy_frame, [sg + (right, top)], -1, (0, 0, 255))
-                    cv.imshow('Thresholded', th)
+
+                    # Draw the convex Hull
+                    hull = cv.convexHull(sg, returnPoints=False)
+                    cv.drawContours(
+                        copy_frame, [hull + (right, top)], -1, (255, 0, 0))
+
+                    defects = cv.convexityDefects(sg, hull)
+                    if defects is not None:
+                        cnt = 0
+                        for i in range(defects.shape[0]):
+                            s, e, f, d = defects[i, 0]
+                            start = tuple(sg[s][0])
+                            end = tuple(sg[e][0])
+                            far = tuple(sg[f][0])
+                            start_x, start_y = start
+                            end_x, end_y = end
+                            far_x, far_y = far
+
+                            cv.line(copy_frame, (start_x + right, start_y + top),
+                                    (end_x + right, end_y + top), (0, 255, 0), 2)
+                            cv.circle(
+                                copy_frame, (far_x + right, far_y+top), 5, (255, 255, 0), -1)
+
+                    cv.imshow('Threshold', th)
 
             cv.rectangle(copy_frame, (left, top),
                          (right, bottom), (0, 255, 0), 2)
