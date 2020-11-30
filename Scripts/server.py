@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
                     # Draw the convex Hull
                     hull = cv.convexHull(sg, returnPoints=False)
-                    cv.drawContours(
-                        copy_frame, [hull + (right, top)], -1, (255, 0, 0))
+                    # cv.drawContours(
+                    #     copy_frame, [hull + (right, top)], -1, (255, 0, 0))
 
                     defects = cv.convexityDefects(sg, hull)
                     if defects is not None:
@@ -87,10 +87,24 @@ if __name__ == "__main__":
                             end_x, end_y = end
                             far_x, far_y = far
 
-                            cv.line(copy_frame, (start_x + right, start_y + top),
-                                    (end_x + right, end_y + top), (0, 255, 0), 2)
-                            cv.circle(
-                                copy_frame, (far_x + right, far_y+top), 5, (255, 255, 0), -1)
+                            # Cosine theorem
+                            a = np.sqrt((end_x - start_x) **
+                                        2 + (end_y - start_y) ** 2)
+                            b = np.sqrt((far_x - start_x) **
+                                        2 + (far_y - start_y) ** 2)
+                            c = np.sqrt((end_x - far_x) **
+                                        2 + (end_y - far_y) ** 2)
+
+                            angle = np.arccos(
+                                (b ** 2 + c ** 2 - a ** 2) / (2 * b * c))
+
+                            if angle <= np.pi / 2:
+                                cnt += 1
+                                cv.circle(
+                                    copy_frame, (far_x + right, far_y+top), 5, (255, 255, 0), -1)
+
+                            if cnt > 3:
+                                print("HIGH FIVE")
 
                     cv.imshow('Threshold', th)
 
