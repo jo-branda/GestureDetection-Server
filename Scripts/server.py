@@ -3,11 +3,11 @@ import numpy as np
 import socket
 
 UDP_IP = '127.0.0.1'
-UDP_PORT = 5065
+UDP_PORT = 5005
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 background = None
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+last_positions = []
 
 
 # Running average between the background and the current frame
@@ -59,10 +59,13 @@ if __name__ == "__main__":
             grayFrame = cv.cvtColor(roi, cv.COLOR_BGR2GRAY)
             grayFrame = cv.GaussianBlur(grayFrame, (7, 7), 0)
 
+            cnt = 0
+            text = "None"
+
             if n_frames < 30:
                 find_avg(grayFrame, a_weight)
             else:
-                print('avg:30 frames')
+                # print('avg:30 frames')
                 foreground = segmentation(grayFrame)
                 # is the foreground segmented?
                 if foreground is not None:
@@ -77,17 +80,14 @@ if __name__ == "__main__":
 
                     defects = cv.convexityDefects(sg, hull)
                     if defects is not None:
-                        cnt = 0
+
                         for i in range(defects.shape[0]):
                             s, e, f, d = defects[i, 0]
-                            start = tuple(sg[s][0])
-                            end = tuple(sg[e][0])
-                            far = tuple(sg[f][0])
-                            start_x, start_y = start
-                            end_x, end_y = end
-                            far_x, far_y = far
+                            start_x, start_y = tuple(sg[s][0])
+                            end_x, end_y = tuple(sg[e][0])
+                            far_x, far_y = tuple(sg[f][0])
 
-                            # Cosine theorem
+                            # Cosine theorem => find the acute angles in the defects
                             a = np.sqrt((end_x - start_x) **
                                         2 + (end_y - start_y) ** 2)
                             b = np.sqrt((far_x - start_x) **
@@ -103,13 +103,28 @@ if __name__ == "__main__":
                                 cv.circle(
                                     copy_frame, (far_x + right, far_y+top), 5, (255, 255, 0), -1)
 
-                            if cnt > 3:
-                                print("HIGH FIVE")
-
                     cv.imshow('Threshold', th)
+
+                    last_positions.append(cnt)
+                    if (len(last_positions) > 5):
+
+                        # Slice operation ==> Keep the last 5 numbers and throw away the rest
+                        last_positions = last_positions[-5:]
+
+                    if (cnt == 4 and 0 in last_positions):
+                        print("HIGH FIVE")
+                        text = "HIGH FIVE"
+
+                        # Send a package to the UDP_IP
+                        sock.sendto(("FIVE!").encode(), (UDP_IP, UDP_PORT))
+                    else:
+                        print('None')
 
             cv.rectangle(copy_frame, (left, top),
                          (right, bottom), (0, 255, 0), 2)
+
+            cv.putText(copy_frame, text, (0, 20),
+                       cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
             n_frames += 1
 
             cv.imshow('Frame', copy_frame)
