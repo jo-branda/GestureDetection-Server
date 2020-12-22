@@ -29,6 +29,11 @@ def segmentation(image, threshold=25):
     contours, _ = cv.findContours(
         th, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
+    # Morph transform
+    kernel = np.ones((2, 2), np.uint8)
+    # th = cv.dilate(th, kernel, iterations=2)
+    th = cv.morphologyEx(th, cv.MORPH_CLOSE, kernel)
+
     if len(contours) > 0:
         sg = max(contours, key=cv.contourArea)
         return(th, sg)
@@ -98,6 +103,7 @@ if __name__ == "__main__":
                             angle = np.arccos(
                                 (b ** 2 + c ** 2 - a ** 2) / (2 * b * c))
 
+                            # if the angle is less then 90º - count a finger
                             if angle <= np.pi / 2:
                                 cnt += 1
                                 cv.circle(
@@ -125,6 +131,14 @@ if __name__ == "__main__":
 
             cv.putText(copy_frame, text, (0, 20),
                        cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+            if (cnt >= 1):
+                cv.putText(copy_frame, "Fingers Up: "+str(cnt + 1), (0, 50),
+                           cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+            else:
+                cv.putText(copy_frame, "Fingers Up: "+str(cnt), (0, 50),
+                           cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
             n_frames += 1
 
             cv.imshow('Frame', copy_frame)
